@@ -28,6 +28,7 @@ class Mortgage:
         self._amount = 200000
         self._rate = 0.05
         self._term = 30
+        self._add_pmt = 0 # future update
         self._first_payment = '1/1/2018' # future update
         self._pay_freq = 'Monthly' # only option for now
         self._compound_freq = 'Monthly' # only option for now
@@ -48,6 +49,9 @@ class Mortgage:
     
     def amount(self):
         return self._amount
+
+    def additional_pmt(self):
+        return self._add_pmt
     
     def monthly_payment(self):
         pmt = (self.amount() * self.rate()) / (MONTHS_IN_YEAR * (1.0-(1.0/self.monthly_growth()) ** self.loan_months()))
@@ -61,21 +65,29 @@ class Mortgage:
 
     def monthly_payment_schedule(self):
         monthly = self.monthly_payment()
+        #additional = self.additional_pmt()
         balance = float(dollar(self.amount()))
         rate = float(decimal.Decimal(str(self.rate())).quantize(decimal.Decimal('.000001')))
         while True:
             interest_unrounded = balance * rate * float(decimal.Decimal(1) / MONTHS_IN_YEAR)
             interest = float(dollar(interest_unrounded, round=decimal.ROUND_HALF_UP))
             if monthly >= balance + interest:  # check of payment exceeds remaining due
-                yield balance, interest
+                yield monthly, interest, principal, balance
                 break
             principal = float(dollar(monthly - interest))
-            yield principal, interest
-            balance -= principal
+            yield monthly, interest, principal, balance
+            balance -= (principal)
+        # last payment
+        principal = balance
+        interest_unrounded = balance * rate * float(decimal.Decimal(1) / MONTHS_IN_YEAR)
+        interest = float(dollar(interest_unrounded, round=decimal.ROUND_HALF_UP))
+        last_pmt = principal + interest
+        balance -= principal
+        yield last_pmt, interest, principal, balance
 
     def print_monthly_payment_schedule(self):
         for index, payment in enumerate(self.monthly_payment_schedule()):
-            print(payment)
+            print(index, payment[0], payment[1], payment[2], payment[3])
 
     def main(self):
         print(self.rate())
