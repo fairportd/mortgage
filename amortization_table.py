@@ -28,7 +28,7 @@ class Mortgage:
         self._amount = 200000
         self._rate = 0.05
         self._term = 30
-        self._add_pmt = 0
+        self._add_pmt = 900
         self._first_payment = '1/1/2018' # future update
         self._pay_freq = 'Monthly' # only option for now
         self._compound_freq = 'Monthly' # only option for now
@@ -74,13 +74,14 @@ class Mortgage:
             interest = float(dollar(interest_unrounded, round=decimal.ROUND_HALF_UP))
             if monthly >= balance + interest:  # check if payment exceeds remaining due
                 # last pmt
+                additional = 0.0
                 principal = float(dollar(end_balance))
-                end_balance -= float(dollar(principal))
+                end_balance -= float(dollar(principal + additional))
                 yield float(dollar(balance)), float(dollar((principal + interest))), additional, interest, principal, float(dollar(end_balance))
                 break
 
             principal = float(dollar(monthly - interest))
-            end_balance -= principal
+            end_balance -= (principal + additional)
             yield float(dollar(balance)), monthly, additional, interest, principal, float(dollar(end_balance))
             balance = end_balance
 
