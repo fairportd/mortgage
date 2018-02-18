@@ -10,6 +10,8 @@ amortization_table.py
 # https://github.com/jbmohler/mortgage/blob/master/mortgage.py
 """
 import decimal
+import pandas as pd
+import datetime as dt
 
 MONTHS_IN_YEAR = 12
 DOLLAR_QUANTIZE = decimal.Decimal('.01')
@@ -96,7 +98,26 @@ class Mortgage:
         for index, payment in enumerate(self.monthly_payment_schedule()):
             print(index + 1, payment[0], payment[1], payment[2], payment[3], payment[4], payment[5])
 
+    def amortization_dict(self):
+        amort_dict = {}
+        for index, payment in enumerate(self.monthly_payment_schedule()):
+            amort_dict[index + 1] = [payment[0], payment[1], payment[2], payment[3], payment[4], payment[5]]
+        return amort_dict
+
+    def amortization_table(self):
+        names = ['Beg. Balance', 'Monthly Payment', 'Additional Payment',
+                 'Interest', 'Principal', 'End Balance']
+        df = pd.DataFrame.from_dict(self.amortization_dict(), orient='index')
+        df.columns = names
+        return df
+
+    def amort_table_to_csv(self):
+        now = dt.datetime.today()
+        date = str(now.year) + str(now.month) + str(now.day) + '_' + str(now.hour) + str(now.minute)
+        self.amortization_table().to_csv('/home/david/git_repos/mortgage/output/' + date + '.csv')
+
     def main(self):
+        '''
         print(self.rate())
         print(self.monthly_growth())
         print(self.loan_years())
@@ -105,7 +126,10 @@ class Mortgage:
         print(dollar(self.monthly_payment()))
         print(dollar(self.annual_payment()))
         print(dollar(self.total_payment()))
+        '''
         self.print_monthly_payment_schedule()
+        print(self.amortization_table())
+        self.amort_table_to_csv()
 
 
 def test_Mortgage():
