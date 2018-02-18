@@ -28,7 +28,7 @@ class Mortgage:
         self._amount = 200000
         self._rate = 0.05
         self._term = 30
-        self._add_pmt = 0 # future update
+        self._add_pmt = 0
         self._first_payment = '1/1/2018' # future update
         self._pay_freq = 'Monthly' # only option for now
         self._compound_freq = 'Monthly' # only option for now
@@ -64,30 +64,29 @@ class Mortgage:
         return self.monthly_payment() * self.loan_months()
 
     def monthly_payment_schedule(self):
-        monthly = self.monthly_payment()
-        #additional = self.additional_pmt()
+        monthly = float(dollar(self.monthly_payment()))
+        additional = float(dollar(self.additional_pmt()))
         balance = float(dollar(self.amount()))
+        end_balance = float(dollar(balance))
         rate = float(decimal.Decimal(str(self.rate())).quantize(decimal.Decimal('.000001')))
         while True:
             interest_unrounded = balance * rate * float(decimal.Decimal(1) / MONTHS_IN_YEAR)
             interest = float(dollar(interest_unrounded, round=decimal.ROUND_HALF_UP))
-            if monthly >= balance + interest:  # check of payment exceeds remaining due
-                yield monthly, interest, principal, balance
+            if monthly >= balance + interest:  # check if payment exceeds remaining due
+                # last pmt
+                principal = float(dollar(end_balance))
+                end_balance -= float(dollar(principal))
+                yield float(dollar(balance)), float(dollar((principal + interest))), additional, interest, principal, float(dollar(end_balance))
                 break
+
             principal = float(dollar(monthly - interest))
-            yield monthly, interest, principal, balance
-            balance -= (principal)
-        # last payment
-        principal = balance
-        interest_unrounded = balance * rate * float(decimal.Decimal(1) / MONTHS_IN_YEAR)
-        interest = float(dollar(interest_unrounded, round=decimal.ROUND_HALF_UP))
-        last_pmt = principal + interest
-        balance -= principal
-        yield last_pmt, interest, principal, balance
+            end_balance -= principal
+            yield float(dollar(balance)), monthly, additional, interest, principal, float(dollar(end_balance))
+            balance = end_balance
 
     def print_monthly_payment_schedule(self):
         for index, payment in enumerate(self.monthly_payment_schedule()):
-            print(index, payment[0], payment[1], payment[2], payment[3])
+            print(index + 1, payment[0], payment[1], payment[2], payment[3], payment[4], payment[5])
 
     def main(self):
         print(self.rate())
