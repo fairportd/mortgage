@@ -6,7 +6,7 @@ Created on Sat Feb 17 15:42:13 2018
 amortization_table.py
 @author: david
 
-# source for Mortgage class
+# source for most of Mortgage class
 # https://github.com/jbmohler/mortgage/blob/master/mortgage.py
 """
 import decimal
@@ -28,9 +28,10 @@ def dollar(f, round=decimal.ROUND_CEILING):
 class Mortgage:
     def __init__(self):
         self._amount = 200000
-        self._rate = 0.05
+        self._rate = float(0.05)
         self._term = 30
         self._add_pmt = 0
+        self._inflation = float(0.03)
         self._first_payment = '1/1/2018' # future update
         self._pay_freq = 'Monthly' # only option for now
         self._compound_freq = 'Monthly' # only option for now
@@ -109,6 +110,7 @@ class Mortgage:
                  'Interest', 'Principal', 'End Balance']
         df = pd.DataFrame.from_dict(self.amortization_dict(), orient='index')
         df.columns = names
+        #df['PV Factor']
         return df
 
     def amort_table_to_csv(self):
@@ -116,20 +118,24 @@ class Mortgage:
         date = str(now.year) + str(now.month) + str(now.day) + '_' + str(now.hour) + str(now.minute)
         self.amortization_table().to_csv('/home/david/git_repos/mortgage/output/' + date + '.csv')
 
+    def print_summary(self):
+        '''
+        Print out summary of information on the mortgage.
+        '''
+        print('{0:>30s}: ${1:>11,.0f}'.format('Loan Amount', self.amount()))
+        print('{0:>30s}: {1:>12.0f}'.format('Term (years)', self.loan_years()))
+        print('{0:>30s}: {1:>12.2f}%'.format('Rate', self.rate()*100))
+        print('{0:>30s}: ${1:>11,.0f}'.format('Monthly Mortgage Payment', self.monthly_payment()))
+        print('{0:>30s}: ${1:>11,.0f}'.format('Annual Mortgage Payment', self.annual_payment()))
+        print('{0:>30s}: ${1:>11,.0f}'.format('Total Mortgage Payment', self.total_payment()))
+        # re-reference totals to include additional payments (new function needed)
+        # pv of payments
+
     def main(self):
-        '''
-        print(self.rate())
-        print(self.monthly_growth())
-        print(self.loan_years())
-        print(self.loan_months())
-        print(dollar(self.amount()))
-        print(dollar(self.monthly_payment()))
-        print(dollar(self.annual_payment()))
-        print(dollar(self.total_payment()))
-        '''
-        self.print_monthly_payment_schedule()
-        print(self.amortization_table())
-        self.amort_table_to_csv()
+        # self.print_monthly_payment_schedule()
+        # print(self.amortization_table())
+        # self.amort_table_to_csv()
+        self.print_summary()
 
 
 def test_Mortgage():
