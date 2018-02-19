@@ -45,11 +45,45 @@ class Rates:
         df = pd.DataFrame.from_dict(rate_dict, orient='index')
         df.columns = names
         #print(df)
-        return df
+        # filter 30 year conventional rates
+        mask_30yrcon = df['loan type'] == '30 Year Fixed Rate'
+        df_30yrcon = df[mask_30yrcon]
+        mask_30yr_rate = df_30yrcon['rate'] == max(df_30yrcon['rate'].values)
+        con30 = df_30yrcon[mask_30yr_rate]
+        con30 = (con30["loan type"].values[0],
+                 con30['rate'].values[0],
+                 con30['apr'].values[0],
+                 con30['points'].values[0]
+                 )
+        # filter 30 year va rates
+        mask_30yrva = df['loan type'] == 'VA 30 Year Fixed Rate'
+        df_30yrva = df[mask_30yrva]
+        mask_30yrva_rate = df_30yrva['rate'] == max(df_30yrva['rate'].values)
+        va30 = df_30yrva[mask_30yrva_rate]
+        va30 = (va30['loan type'].values[0],
+                va30['rate'].values[0],
+                va30['apr'].values[0],
+                va30['points'].values[0]
+                )
+
+        return df, con30, va30
+
+    def rates_esl(self):
+        '''
+        Work in progress
+        '''
+        rate_dict = {}
+        counter = 0
+        url = 'https://www.esl.org/personal/resources-tools/rates/mortgages-fixed-rates'
+        site = self.get_website_content(url)
+        divs = site.find_all('div', {'class':'list-to-table rates-table with-footnote'})
+        for div in divs:
+            print(div.name)
 
     def main(self):
-        self.rates_mandtbank()
-        print('ok')
+        mtb_rates, mtb_con30, mtb_va30 = self.rates_mandtbank()
+        print(mtb_con30)
+        print(mtb_va30)
 
 def test():
     rates = Rates()
