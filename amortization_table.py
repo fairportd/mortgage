@@ -27,10 +27,12 @@ def dollar(f, round=decimal.ROUND_CEILING):
 
 class Mortgage:
     def __init__(self):
-        self._amount = 200000
+        self._amount = 160000
         self._rate = float(0.05)
         self._term = 30
         self._add_pmt = 0
+        self._total_combined_payments = float(0)
+        self._payment_months = float(0)
         self._inflation = float(0.03)
         self._first_payment = '1/1/2018' # future update
         self._pay_freq = 'Monthly' # only option for now
@@ -110,8 +112,13 @@ class Mortgage:
                  'Interest', 'Principal', 'End Balance']
         df = pd.DataFrame.from_dict(self.amortization_dict(), orient='index')
         df.columns = names
-        #df['PV Factor']
-        return df
+        if sum(df['Additional Payment'].values) != 0: #check if there are additional payments
+            df['Total Payment'] = df['Monthly Payment'] + df['Additional Payment']
+            self._total_combined_payments = sum(df['Total Payment'].values)
+            self._payment_months = df.shape[0]
+            return df, self._total_combined_payments
+        else:
+            return df
 
     def amort_table_to_csv(self):
         now = dt.datetime.today()
@@ -122,18 +129,34 @@ class Mortgage:
         '''
         Print out summary of information on the mortgage.
         '''
+        print('Mortgage Summary')
+        print('-' * 75)
         print('{0:>30s}: ${1:>11,.0f}'.format('Loan Amount', self.amount()))
         print('{0:>30s}: {1:>12.0f}'.format('Term (years)', self.loan_years()))
         print('{0:>30s}: {1:>12.2f}%'.format('Rate', self.rate()*100))
         print('{0:>30s}: ${1:>11,.0f}'.format('Monthly Mortgage Payment', self.monthly_payment()))
         print('{0:>30s}: ${1:>11,.0f}'.format('Annual Mortgage Payment', self.annual_payment()))
         print('{0:>30s}: ${1:>11,.0f}'.format('Total Mortgage Payment', self.total_payment()))
+        print('-' * 75)
+        if self._total_combined_payments != 0:
+            new_monthly = self._total_combined_payments / self._payment_months
+            new_annual = self._total_combined_payments / self._payment_months * 12
+            change_months = self._payment_months - self.loan_months()
+            change_monthly = new_monthly - self.monthly_payment()
+            change_annual = new_annual - self.annual_payment()
+            change_total = self._total_combined_payments - self.total_payment()
+            print('Effect of paying an additional ${0:,.0f} each month:'.format(self.additional_pmt()))
+            print("")
+            print('{0:>30s}: {1:>12.1f}     {2:>10.1f} years'.format('Term (years)', self._payment_months/12.0, change_months/12.0))
+            print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('Monthly Mortgage Payment', new_monthly, change_monthly))
+            print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('Annual Mortgage Payment', new_annual, change_annual))
+            print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('Total Mortgage Payment', self._total_combined_payments, change_total))
         # re-reference totals to include additional payments (new function needed)
         # pv of payments
 
     def main(self):
         # self.print_monthly_payment_schedule()
-        # print(self.amortization_table())
+        self.amortization_table() # print [0] for the table
         # self.amort_table_to_csv()
         self.print_summary()
 
