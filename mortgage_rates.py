@@ -25,6 +25,11 @@ class Rates:
         return soup
 
     def rates_mandtbank(self):
+        '''
+        Get mortgage rates from m&t bank
+        '''
+        #TODO Create inner functions to get specific mortgage types
+
         rate_dict = {}
         counter = 0
         url = 'https://onlinemortgage.mtb.com/LoansAndRates/GetRates'
