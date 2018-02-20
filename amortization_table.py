@@ -9,7 +9,9 @@ amortization_table.py
 # source for most of Mortgage class
 # https://github.com/jbmohler/mortgage/blob/master/mortgage.py
 """
+import argparse
 import decimal
+import os
 import pandas as pd
 import numpy as np
 import datetime as dt
@@ -27,11 +29,12 @@ def dollar(f, round=decimal.ROUND_CEILING):
 
 
 class Mortgage:
-    def __init__(self):
-        self._amount = 160000
-        self._rate = float(0.05)
-        self._term = 30
-        self._add_pmt = 1000
+    def __init__(self, amount, rate, term, additional=0):
+        # loan amount, interest rate, term in years as arguments
+        self._amount = amount
+        self._rate = rate
+        self._term = term
+        self._add_pmt = additional
         self._total_combined_payments = float(0)
         self._payment_months = float(0)
         self._inflation = float(0.03)
@@ -188,15 +191,29 @@ class Mortgage:
         # pv of payments
 
     def main(self):
-        # self.print_monthly_payment_schedule()
-        self.amortization_table() # print [0] for the table
-        # self.amort_table_to_csv()
+        self.amortization_table() # print [0] for the table # need to run to get summary stats
+        # self.amort_table_to_csv() #optional, use if want to export
         self.print_summary()
 
 
-def test_Mortgage():
-    test = Mortgage()
-    test.main()
+def main():
+    try:
+        os.system('clear') # for linux
+    except:
+        os.system('cls') # for windows
+        
+    parser = argparse.ArgumentParser(description='Mortgage Tools')
+    parser.add_argument('-i', '--interest', default=5, dest='interest')
+    parser.add_argument('-y', '--loan-years', default=30, dest='years')
+    parser.add_argument('-a', '--amount', default=200000, dest='amount')
+    parser.add_argument('-e', '--extra payment', default=None, dest='extra')
+    args = parser.parse_args()
+
+    if args.extra:
+        m = Mortgage(float(args.amount), float(args.interest) / 100.0, int(args.years), float(args.extra))
+    else:
+        m = Mortgage(float(args.amount), float(args.interest) / 100.0, int(args.years))
+    m.main()
     
 if __name__ == '__main__':
-    test_Mortgage()
+    main()
