@@ -11,6 +11,7 @@ amortization_table.py
 """
 import decimal
 import pandas as pd
+import numpy as np
 import datetime as dt
 
 MONTHS_IN_YEAR = 12
@@ -30,10 +31,12 @@ class Mortgage:
         self._amount = 160000
         self._rate = float(0.05)
         self._term = 30
-        self._add_pmt = 0
+        self._add_pmt = 1000
         self._total_combined_payments = float(0)
         self._payment_months = float(0)
         self._inflation = float(0.03)
+        self._pv_payments = float(0)
+        self._pv_combined_payments = float(0)
         self._first_payment = '1/1/2018' # future update
         self._pay_freq = 'Monthly' # only option for now
         self._compound_freq = 'Monthly' # only option for now
@@ -112,12 +115,39 @@ class Mortgage:
                  'Interest', 'Principal', 'End Balance']
         df = pd.DataFrame.from_dict(self.amortization_dict(), orient='index')
         df.columns = names
+        monthly_inflation = self._inflation / 12
         if sum(df['Additional Payment'].values) != 0: #check if there are additional payments
             df['Total Payment'] = df['Monthly Payment'] + df['Additional Payment']
             self._total_combined_payments = sum(df['Total Payment'].values)
             self._payment_months = df.shape[0]
-            return df, self._total_combined_payments
+            # calc PV of original terms
+            arr_months = np.array(range(self.loan_years() * 12))
+            arr_m_payment = np.array(self.monthly_payment())
+            list_inflation = []
+            for month in arr_months:
+                list_inflation.append((1 + monthly_inflation) ** month)
+            arr_inflation = np.array(list_inflation)
+            arr_pv_payments = np.divide(arr_m_payment, arr_inflation)
+            self._pv_payments = sum(arr_pv_payments)
+
+            # add combined PV factor
+            arr_c_months = np.array(range(self._payment_months))
+            list_c_inflation = []
+            for month in arr_c_months:
+                list_c_inflation.append((1 + monthly_inflation) ** month)
+            arr_c_inflation = np.array(list_c_inflation)
+            df['PV of Combined Payment'] = (df['Monthly Payment'] + df['Additional Payment']) / arr_c_inflation
+            self._pv_combined_payments = sum(df['PV of Combined Payment'].values)
+            return df
         else:
+            # add PV factor
+            arr_months = np.array(range(self.loan_months()))
+            list_inflation = []
+            for month in arr_months:
+                list_inflation.append((1 + monthly_inflation) ** month)
+            arr_inflation = np.array(list_inflation)
+            df['PV of Payment'] = df['Monthly Payment'] / arr_inflation
+            self._pv_payments = sum(df['PV of Payment'].values)
             return df
 
     def amort_table_to_csv(self):
@@ -137,6 +167,7 @@ class Mortgage:
         print('{0:>30s}: ${1:>11,.0f}'.format('Monthly Mortgage Payment', self.monthly_payment()))
         print('{0:>30s}: ${1:>11,.0f}'.format('Annual Mortgage Payment', self.annual_payment()))
         print('{0:>30s}: ${1:>11,.0f}'.format('Total Mortgage Payment', self.total_payment()))
+        print('{0:>30s}: ${1:>11,.0f}'.format('Total PV of Payments', self._pv_payments))
         print('-' * 75)
         if self._total_combined_payments != 0:
             new_monthly = self._total_combined_payments / self._payment_months
@@ -145,12 +176,14 @@ class Mortgage:
             change_monthly = new_monthly - self.monthly_payment()
             change_annual = new_annual - self.annual_payment()
             change_total = self._total_combined_payments - self.total_payment()
+            change_pv = self._pv_combined_payments - self._pv_payments
             print('Effect of paying an additional ${0:,.0f} each month:'.format(self.additional_pmt()))
             print("")
             print('{0:>30s}: {1:>12.1f}     {2:>10.1f} years'.format('Term (years)', self._payment_months/12.0, change_months/12.0))
             print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('Monthly Mortgage Payment', new_monthly, change_monthly))
             print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('Annual Mortgage Payment', new_annual, change_annual))
             print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('Total Mortgage Payment', self._total_combined_payments, change_total))
+            print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('PV of Combined Payments', self._pv_combined_payments, change_pv))
         # re-reference totals to include additional payments (new function needed)
         # pv of payments
 
