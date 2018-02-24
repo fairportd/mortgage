@@ -98,7 +98,7 @@ print(df_special[pr701])
 
 county_monroe = 7.705588 + 0.663173
 town_perinton = 2.244207
-school_fairport = 23.029677 
+school_fairport = 23.029677 * 0.9 #assessed against 90% 
 library_fairport = 0.794601
 fire_bushbasin = 0.845769
 ambulance_perinton = 0.04341
