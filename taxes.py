@@ -79,37 +79,64 @@ To calculate tax rates for counties and school districts that cross over municip
 #PR110 Perinton Ambulance 0.04341 df[1]
 #PR701 Perinton Consl Sewer 80.000258 per unit df[1]
 
+def tax_county_town(df, town):
+    ''' Get county and town tax rates '''
+    df = df[0]
+    town = town.upper()
+    df_county_town = df['Municipality'] == town
+    tax_county = df[df_county_town]['Net County Rate'].values + df[df_county_town]['County Services'].values
+    tax_town = df[df_county_town]['Net Town Rate'].values
+    
+    return tax_county[0], tax_town[0]
 
+def tax_school_library(df, town, school):
+    ''' Get the combined school and library tax rates '''
+    df = df[2]
+    town = str(town).title()
+    school = str(school).title()
+    #print(town, school)
+    df = df.fillna(method='ffill')
+    df_school = df['Town'] == school
+    df_town = df['District'] == town
+    # print(df)
+    return df[df_school & df_town].head(1)['Total'].values[0]
 
+def tax_special(df, districts):
+    ''' Pass in list of applicable special districts'''
+    df = df[1]
+    district_taxes = []
+    for district in districts:
+        df_special = df['Code'] == district
+        district_taxes.append(df[df_special])
+
+    tax_dollars = []
+    for d in district_taxes:
+        if d['Unnamed: 8'].values[0] == '/1000':
+            tr = d['Tax Rate'].values[0]
+            tax_dollars.append(tr * price_000)
+        elif d['Unnamed: 8'].values[0] == '/ Unit':
+            ur = d['Tax Rate'].values[0]
+            tax_dollars.append(ur * 1)
+
+    return tax_dollars
+    
+
+############################################################
 url = 'https://www2.monroecounty.gov/property-taxrates.php'
 df = pd.read_html(url, header=0)
-'''
-print(len(df)) # count how many tables have been found
-df_special = df[1]
-# special district filters
-pr104 = df_special['Code'] == 'PR104'
-pr110 = df_special['Code'] == 'PR110'
-pr701 = df_special['Code'] == 'PR701-B'
-print(df_special[pr104])
-print(df_special[pr110])
-print(df_special[pr701])
-'''
+town = 'Perinton'
+school = 'Fairport (Village)' # matches 'Town'
+school_town = 'Fairport' # matches 'District'
+districts = ['PR104','PR110','PR701-B']
+price = 200000
+price_000 = price / 1000
 
-
-county_monroe = 7.705588 + 0.663173
-town_perinton = 2.244207
-school_fairport = 23.029677 * 0.9 #assessed against 90% 
-library_fairport = 0.794601
-fire_bushbasin = 0.845769
-ambulance_perinton = 0.04341
-sewer_perinton = 80.000258
-
-sum_mill_rates = county_monroe + town_perinton + school_fairport + library_fairport + fire_bushbasin + ambulance_perinton
-
-def taxes(assessed_values):
-    for assessed_value in assessed_values:
-        tax = assessed_value/1000 * sum_mill_rates + sewer_perinton # sewer is assessed per unit, typically one per house
-        print('The total taxes on a ${0:,.0f} house are ${1:,.0f}, or {2:.1f}% of the total value.'.format(assessed_value, tax, tax/assessed_value*100))
-
-assessed_values = [150000, 175000, 200000, 225000, 250000]
-taxes(assessed_values)
+total_taxes = 0
+c, t = tax_county_town(df, town)
+total_taxes += (c * price_000 + t * price_000)
+s = tax_school_library(df, school_town, school)
+total_taxes += (s * price_000 * 0.90) #assessed against 90% of house value
+d = tax_special(df, districts)
+for tax in d:
+    total_taxes += tax
+print('${0:,.0f}  {1:.1f}%'.format(total_taxes, total_taxes / price * 100))
