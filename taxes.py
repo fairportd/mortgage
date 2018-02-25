@@ -54,7 +54,7 @@ def tax_special(df, districts, price_000):
 
     return tax_dollars
 
-def tax_calc(df, price=200000, municipality='Fairport', town='Perinton', school='Fairport (Village)', school_town='Fairport', districts=['PR104','PR110','PR701-B']):
+def tax_calc(df=_DF, price=200000, municipality='Fairport', town='Perinton', school='Fairport (Village)', school_town='Fairport', districts=['PR104','PR110','PR701-B']):
     """Returns string with the tax bill and tax % given the price and home location"""
     price_000 = price / 1000
     total_taxes = 0
@@ -69,6 +69,21 @@ def tax_calc(df, price=200000, municipality='Fairport', town='Perinton', school=
 
     return (municipality + ' Taxes: ${0:,.0f}  {1:.1f}%'.format(total_taxes, total_taxes / price * 100))
 
+def tax_rate(df=_DF, price=200000, municipality='Fairport', town='Perinton', school='Fairport (Village)', school_town='Fairport', districts=['PR104','PR110','PR701-B']):
+    """Returns tax rate given the price and home location"""
+    price_000 = price / 1000
+    total_taxes = 0
+    # calc the different types of taxes
+    c, t = tax_county_town(df, town)
+    total_taxes += (c * price_000 + t * price_000)
+    s = tax_school_library(df, school_town, school)
+    total_taxes += (s * price_000 * 0.90) #assessed against 90% of house value
+    d = tax_special(df, districts, price_000)
+    for tax in d:
+        total_taxes += tax
+
+    return total_taxes / price
+
 def get_all_town_taxes():
     """Calls tax_calc on each town in tax_dict"""
     town_taxes = []
@@ -82,7 +97,7 @@ def get_all_town_taxes():
         town_taxes.append(tax_calc(_DF, price=price, municipality=municipality, town=town, school=school, school_town=school_town, districts=districts))
     return town_taxes
 
-def get_town_tax(town_name):
+def get_town_tax(town_name='Fairport'):
     """Calls tax_calc on the town given"""
     v = tax_dict[town_name]
     municipality = town_name
@@ -92,4 +107,12 @@ def get_town_tax(town_name):
     districts = v['districts']
     return tax_calc(_DF, price=200000, municipality=municipality, town=town, school=school, school_town=school_town, districts=districts)
 
-
+def get_town_tax_rate(town_name='Fairport'):
+    """Calls tax_rate on the town given"""
+    v = tax_dict[town_name]
+    municipality = town_name
+    town = v['town']
+    school = v['school']
+    school_town = v['school_town']
+    districts = v['districts']
+    return tax_rate(_DF, price=200000, municipality=municipality, town=town, school=school, school_town=school_town, districts=districts)
