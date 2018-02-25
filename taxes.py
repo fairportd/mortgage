@@ -9,9 +9,8 @@ Calculate taxes for a given house value by town
 @author: david
 """
 
-import requests
 import pandas as pd
-from bs4 import BeautifulSoup
+from taxes_dict import tax_dict
 
 
 def tax_county_town(df, town):
@@ -29,11 +28,9 @@ def tax_school_library(df, town, school):
     df = df[2]
     town = str(town).title()
     school = str(school).title()
-    #print(town, school)
     df = df.fillna(method='ffill')
     df_school = df['Town'] == school
     df_town = df['District'] == town
-    # print(df)
     return df[df_school & df_town].head(1)['Total'].values[0]
 
 def tax_special(df, districts, price_000):
@@ -55,7 +52,7 @@ def tax_special(df, districts, price_000):
 
     return tax_dollars
 
-def tax_calc(df, price, municipality='Fairport', town='Perinton', school='Fairport (Village)', school_town='Fairport', districts=['PR104','PR110','PR701-B']):
+def tax_calc(df, price=200000, municipality='Fairport', town='Perinton', school='Fairport (Village)', school_town='Fairport', districts=['PR104','PR110','PR701-B']):
     price_000 = price / 1000
     total_taxes = 0
     # calc the different types of taxes
@@ -69,53 +66,9 @@ def tax_calc(df, price, municipality='Fairport', town='Perinton', school='Fairpo
 
     return (municipality + ' Taxes: ${0:,.0f}  {1:.1f}%'.format(total_taxes, total_taxes / price * 100))
 
-############################################################
 url = 'https://www2.monroecounty.gov/property-taxrates.php'
 df = pd.read_html(url, header=0)
-price = 200000
-tax_dict = {
-    'West Irondequoit':{
-    'town':'Irondequoit',
-    'school':'Irondequoit',
-    'school_town':'West Irondequoit',
-    'districts':[
-        'PR104',
-        'PR110',
-        'PR701-B'
-        ]
-    },
-    'Pittsford':{
-    'town':'Pittsford',
-    'school':'Pittsford (Village)',
-    'school_town':'Pittsford',
-    'districts':[
-        'PR104',
-        'PR110',
-        'PR701-B'
-        ]
-    },
-    'Penfield':{
-    'town':'Penfield',
-    'school':'Penfield',
-    'school_town':'Penfield',
-    'districts':[
-        'PR104',
-        'PR110',
-        'PR701-B'
-        ]
-    },
-    'Fairport':{
-    'town':'Perinton',
-    'school':'Fairport (Village)',
-    'school_town':'Fairport',
-    'districts':[
-        'PR104',
-        'PR110',
-        'PR701-B'
-        ]
-    }
-    }
-
+price = 175000
 
 for k,v in tax_dict.items():
     municipality = k
@@ -124,6 +77,6 @@ for k,v in tax_dict.items():
     school_town = v['school_town']
     districts = v['districts']
     
-    print(tax_calc(df, price, municipality=municipality, town=town, school=school, school_town=school_town, districts=districts))
+    print(tax_calc(df, price=price, municipality=municipality, town=town, school=school, school_town=school_town, districts=districts))
 
 
