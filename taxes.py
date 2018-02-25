@@ -12,9 +12,11 @@ Calculate taxes for a given house value by town
 import pandas as pd
 from taxes_dict import tax_dict
 
+_URL = 'https://www2.monroecounty.gov/property-taxrates.php'
+_DF = pd.read_html(_URL, header=0)
 
 def tax_county_town(df, town):
-    ''' Get county and town tax rates '''
+    """Returns county and town tax rates per $1,000 of value"""
     df = df[0]
     town = town.upper()
     df_county_town = df['Municipality'] == town
@@ -24,7 +26,7 @@ def tax_county_town(df, town):
     return tax_county[0], tax_town[0]
 
 def tax_school_library(df, town, school):
-    ''' Get the combined school and library tax rates '''
+    """Returns combined school and library tax rate per $1,000"""
     df = df[2]
     town = str(town).title()
     school = str(school).title()
@@ -34,7 +36,7 @@ def tax_school_library(df, town, school):
     return df[df_school & df_town].head(1)['Total'].values[0]
 
 def tax_special(df, districts, price_000):
-    ''' Pass in list of applicable special districts'''
+    """Returns special district tax bill in $"""
     df = df[1]
     district_taxes = []
     for district in districts:
@@ -53,6 +55,7 @@ def tax_special(df, districts, price_000):
     return tax_dollars
 
 def tax_calc(df, price=200000, municipality='Fairport', town='Perinton', school='Fairport (Village)', school_town='Fairport', districts=['PR104','PR110','PR701-B']):
+    """Returns string with the tax bill and tax % given the price and home location"""
     price_000 = price / 1000
     total_taxes = 0
     # calc the different types of taxes
@@ -66,17 +69,27 @@ def tax_calc(df, price=200000, municipality='Fairport', town='Perinton', school=
 
     return (municipality + ' Taxes: ${0:,.0f}  {1:.1f}%'.format(total_taxes, total_taxes / price * 100))
 
-url = 'https://www2.monroecounty.gov/property-taxrates.php'
-df = pd.read_html(url, header=0)
-price = 175000
+def get_all_town_taxes():
+    """Calls tax_calc on each town in tax_dict"""
+    town_taxes = []
+    for k,v in tax_dict.items():
+        price = 200000
+        municipality = k
+        town = v['town']
+        school = v['school']
+        school_town = v['school_town']
+        districts = v['districts']
+        town_taxes.append(tax_calc(_DF, price=price, municipality=municipality, town=town, school=school, school_town=school_town, districts=districts))
+    return town_taxes
 
-for k,v in tax_dict.items():
-    municipality = k
+def get_town_tax(town_name):
+    """Calls tax_calc on the town given"""
+    v = tax_dict[town_name]
+    municipality = town_name
     town = v['town']
     school = v['school']
     school_town = v['school_town']
     districts = v['districts']
-    
-    print(tax_calc(df, price=price, municipality=municipality, town=town, school=school, school_town=school_town, districts=districts))
+    return tax_calc(_DF, price=200000, municipality=municipality, town=town, school=school, school_town=school_town, districts=districts)
 
 
