@@ -17,8 +17,15 @@ import numpy as np
 import datetime as dt
 
 class Mortgage:
+    """Contains properties of a mortgage given user inputs"""
     def __init__(self, amount, rate, term, additional=0):
-        # loan amount, interest rate, term in years as arguments
+        """init function for Mortgage class
+        Args:
+            _amount (float): Loan amount
+            _rate (float): Interest rate as a percentage i.e. 5
+            _term (int): Length of the loan in years
+            _additional (float): Extra payment in each month that goes toward principal
+        """
         self._amount = amount
         self._rate = rate
         self._term = term
@@ -37,42 +44,50 @@ class Mortgage:
 
 
     def dollar(self, f, round=decimal.ROUND_CEILING):
-        '''
-        Round the passed float to two decimal places
-        '''
+        """Returns the passed float rounded to two decimal places"""
         if not isinstance(f, decimal.Decimal):
             f = decimal.Decimal(str(f))  # force f into decimal
         return f.quantize(self.DOLLAR_QUANTIZE, rounding=round)
 
     def rate(self):
+        """Returns the interest rate of the loan"""
         return self._rate
     
     def monthly_growth(self):
+        """Returns the monthly interest accrual of the loan"""
         return 1.0 + self._rate / self.MONTHS_IN_YEAR
     
     def loan_years(self):
+        """Returns the term, in years, of the loan"""
         return self._term
     
     def loan_months(self):
+        """Returns the term, in months, of the loan"""
         return self._term * self.MONTHS_IN_YEAR
     
     def amount(self):
+        """Returns the amount of the loan"""
         return self._amount
 
     def additional_pmt(self):
+        """Returns the additional monthly principal payment"""
         return self._add_pmt
     
     def monthly_payment(self):
+        """Returns the monthly payment for the loan"""
         pmt = (self.amount() * self.rate()) / (self.MONTHS_IN_YEAR * (1.0-(1.0/self.monthly_growth()) ** self.loan_months()))
         return pmt
 
     def annual_payment(self):
+        """Returns the total payments during the year for the loan"""
         return self.monthly_payment() * self.MONTHS_IN_YEAR
 
     def total_payment(self):
+        """Returns the total cost of the loan"""
         return self.monthly_payment() * self.loan_months()
 
     def monthly_payment_schedule(self):
+        """Yields amortization schedule for the given loan"""
         monthly = float(self.dollar(self.monthly_payment()))
         additional = float(self.dollar(self.additional_pmt()))
         balance = float(self.dollar(self.amount()))
@@ -102,16 +117,19 @@ class Mortgage:
             balance = end_balance
 
     def print_monthly_payment_schedule(self):
+        """Prints out the monthly payment schedule"""
         for index, payment in enumerate(self.monthly_payment_schedule()):
             print(index + 1, payment[0], payment[1], payment[2], payment[3], payment[4], payment[5])
 
     def amortization_dict(self):
+        """Returns a dictionary with the payment schedule"""
         amort_dict = {}
         for index, payment in enumerate(self.monthly_payment_schedule()):
             amort_dict[index + 1] = [payment[0], payment[1], payment[2], payment[3], payment[4], payment[5]]
         return amort_dict
 
     def amortization_table(self):
+        """Returns a dataframe with the amortization table in it"""
         names = ['Beg. Balance', 'Monthly Payment', 'Additional Payment',
                  'Interest', 'Principal', 'End Balance']
         df = pd.DataFrame.from_dict(self.amortization_dict(), orient='index')
@@ -152,14 +170,13 @@ class Mortgage:
             return df
 
     def amort_table_to_csv(self):
+        """Outputs the amortization table to a .csv file"""
         now = dt.datetime.today()
         date = str(now.year) + str(now.month) + str(now.day) + '_' + str(now.hour) + str(now.minute)
         self.amortization_table().to_csv('/home/david/git_repos/mortgage/output/' + date + '.csv')
 
     def print_summary(self):
-        '''
-        Print out summary of information on the mortgage.
-        '''
+        """Prints out a summary of the given mortgage"""
         print('Mortgage Summary')
         print('-' * 75)
         print('{0:>30s}: ${1:>11,.0f}'.format('Loan Amount', self.amount()))
@@ -188,9 +205,11 @@ class Mortgage:
         # re-reference totals to include additional payments (new function needed)
         # pv of payments
 
-    def main(self):
+    def main(self, csv=False):
+        """Generates an amortization table and prints the summary"""
         self.amortization_table() # print [0] for the table # need to run to get summary stats
-        # self.amort_table_to_csv() #optional, use if want to export
+        if csv == True:
+            self.amort_table_to_csv() #optional, use if want to export
         self.print_summary()
 
 
