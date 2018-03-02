@@ -107,7 +107,7 @@ def get_town_tax(town_name='Fairport'):
     districts = v['districts']
     return tax_calc(_DF, price=200000, municipality=municipality, town=town, school=school, school_town=school_town, districts=districts)
 
-def get_town_tax_rate(town_name='Fairport'):
+def get_town_tax_rate(town_name='Fairport', price=200000):
     """Calls tax_rate on the town given"""
     v = tax_dict[town_name]
     municipality = town_name
@@ -115,4 +115,4 @@ def get_town_tax_rate(town_name='Fairport'):
     school = v['school']
     school_town = v['school_town']
     districts = v['districts']
-    return tax_rate(_DF, price=200000, municipality=municipality, town=town, school=school, school_town=school_town, districts=districts)
+    return tax_rate(_DF, price=price, municipality=municipality, town=town, school=school, school_town=school_town, districts=districts)

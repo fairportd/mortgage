@@ -14,9 +14,7 @@ import amortization_table as amort
 import pandas as pd
 
 def sensitivity(amount, rate, term):
-    '''
-    Generate set of loan summaries based on a base case
-    '''
+    """Returns 3x3 dataframe with sensitized interest rates and house prices"""
     a = float(amount)
     r = float(rate) / 100
     t = float(term)
@@ -36,6 +34,6 @@ def sensitivity(amount, rate, term):
 
     df = pd.DataFrame.from_dict(s_dict, orient='index')
     df.columns = rates
-    print(df)
+    return df
 
-sensitivity(150000, 4.5, 30)
+print(sensitivity(150000, 4.5, 30))
