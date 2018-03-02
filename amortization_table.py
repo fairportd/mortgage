@@ -17,15 +17,15 @@ import numpy as np
 import datetime as dt
 
 class Mortgage:
-    """Contains properties of a mortgage given user inputs"""
-    def __init__(self, amount, rate, term, additional=0):
-        """init function for Mortgage class
+    """Contains properties of a mortgage given user inputs
         Args:
             _amount (float): Loan amount
-            _rate (float): Interest rate as a percentage i.e. 5
+            _rate (float): Interest rate as a decimal i.e. 0.05
             _term (int): Length of the loan in years
             _additional (float): Extra payment in each month that goes toward principal
-        """
+    """
+    def __init__(self, amount, rate, term, additional=0):
+        """init function for Mortgage class"""
         self._amount = amount
         self._rate = rate
         self._term = term
