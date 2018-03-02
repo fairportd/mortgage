@@ -20,15 +20,22 @@ class Mortgage:
     """Contains properties of a mortgage given user inputs
         Args:
             _amount (float): Loan amount
+            _price(float): Price of house
             _rate (float): Interest rate as a decimal i.e. 0.05
             _term (int): Length of the loan in years
+            _taxes (float): Annual tax bill
+            _insurance (float): Annual insurance bill
             _additional (float): Extra payment in each month that goes toward principal
+            
     """
-    def __init__(self, amount, rate, term, additional=0):
+    def __init__(self, amount, price, rate, term, taxes, insurance, additional=0):
         """init function for Mortgage class"""
         self._amount = amount
+        self._price = price
         self._rate = rate
         self._term = term
+        self._taxes = taxes
+        self._insurance = insurance
         self._add_pmt = additional
         self._total_combined_payments = float(0)
         self._payment_months = float(0)
@@ -64,6 +71,10 @@ class Mortgage:
     def loan_months(self):
         """Returns the term, in months, of the loan"""
         return self._term * self.MONTHS_IN_YEAR
+
+    def price(self):
+        """Returns the house price"""
+        return self._price
     
     def amount(self):
         """Returns the amount of the loan"""
@@ -72,6 +83,22 @@ class Mortgage:
     def additional_pmt(self):
         """Returns the additional monthly principal payment"""
         return self._add_pmt
+
+    def taxes(self):
+        """Returns the annual taxes due"""
+        return self._taxes
+
+    def monthly_taxes(self):
+        """Returns the monthly taxes due"""
+        return self._taxes / self.MONTHS_IN_YEAR
+
+    def insurance(self):
+        """Returns the annual insurance amount due"""
+        return self._insurance * self.price()
+
+    def monthly_insurance(self):
+        """Returns the monthly insurance due"""
+        return self.insurance() / self.MONTHS_IN_YEAR
     
     def monthly_payment(self):
         """Returns the monthly payment for the loan"""
@@ -85,6 +112,10 @@ class Mortgage:
     def total_payment(self):
         """Returns the total cost of the loan"""
         return self.monthly_payment() * self.loan_months()
+
+    def piti(self):
+        """Returns the monthly PITI"""
+        return self.monthly_payment() + self.monthly_taxes() + self.monthly_insurance()
 
     def monthly_payment_schedule(self):
         """Yields amortization schedule for the given loan"""
@@ -179,6 +210,8 @@ class Mortgage:
         """Prints out a summary of the given mortgage"""
         print('Mortgage Summary')
         print('-' * 75)
+        print('{0:>30s}: ${1:>11,.0f}'.format('House Price', self.price()))
+        print('')
         print('{0:>30s}: ${1:>11,.0f}'.format('Loan Amount', self.amount()))
         print('{0:>30s}: {1:>12.0f}'.format('Term (years)', self.loan_years()))
         print('{0:>30s}: {1:>12.2f}%'.format('Rate', self.rate()*100))
@@ -186,6 +219,11 @@ class Mortgage:
         print('{0:>30s}: ${1:>11,.0f}'.format('Annual Mortgage Payment', self.annual_payment()))
         print('{0:>30s}: ${1:>11,.0f}'.format('Total Mortgage Payment', self.total_payment()))
         print('{0:>30s}: ${1:>11,.0f}'.format('Total PV of Payments', self._pv_payments))
+        print('')
+        print('{0:>30s}: ${1:>11,.0f}'.format('Annual Taxes', self.taxes()))
+        print('{0:>30s}: ${1:>11,.0f}'.format('Annual Insurance', self.insurance()))
+        print('')
+        print('{0:>30s}: ${1:>11,.0f}'.format('Monthly PITI', self.piti()))
         print('-' * 75)
         if self._total_combined_payments != 0:
             new_monthly = self._total_combined_payments / self._payment_months
@@ -202,6 +240,7 @@ class Mortgage:
             print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('Annual Mortgage Payment', new_annual, change_annual))
             print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('Total Mortgage Payment', self._total_combined_payments, change_total))
             print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('PV of Combined Payments', self._pv_combined_payments, change_pv))
+            print('-' * 75)
         # re-reference totals to include additional payments (new function needed)
         # pv of payments
 
@@ -215,16 +254,19 @@ class Mortgage:
 
 def main():
     parser = argparse.ArgumentParser(description='Mortgage Tools')
-    parser.add_argument('-i', '--interest', default=5, dest='interest')
+    parser.add_argument('-r', '--interest', default=5, dest='interest')
     parser.add_argument('-y', '--loan-years', default=30, dest='years')
+    parser.add_argument('-p', '--price', default=250000, dest='price')
     parser.add_argument('-a', '--amount', default=200000, dest='amount')
+    parser.add_argument('-t', '--taxes', default=7000, dest ='taxes')
+    parser.add_argument('-i', '--insurance', default=0.0035, dest='insurance')
     parser.add_argument('-e', '--extra payment', default=None, dest='extra')
-    args = parser.parse_args()
+    args = parser.parse_args() 
 
     if args.extra:
-        m = Mortgage(float(args.amount), float(args.interest) / 100.0, int(args.years), float(args.extra))
+        m = Mortgage(float(args.amount), float(args.price), float(args.interest) / 100.0, int(args.years), float(args.taxes), float(args.insurance), float(args.extra))
     else:
-        m = Mortgage(float(args.amount), float(args.interest) / 100.0, int(args.years))
+        m = Mortgage(float(args.amount), float(args.price), float(args.interest) / 100.0, int(args.years), float(args.taxes), float(args.insurance))
     m.main()
     
 if __name__ == '__main__':
