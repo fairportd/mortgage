@@ -240,6 +240,11 @@ class Mortgage:
             print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('Annual Mortgage Payment', new_annual, change_annual))
             print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('Total Mortgage Payment', self._total_combined_payments, change_total))
             print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('PV of Combined Payments', self._pv_combined_payments, change_pv))
+            print('')
+            print('{0:>30s}: ${1:>11,.0f}'.format('Annual Taxes', self.taxes()))
+            print('{0:>30s}: ${1:>11,.0f}'.format('Annual Insurance', self.insurance()))
+            print('')
+            print('{0:>30s}: ${1:>11,.0f}'.format('Monthly PITI', new_monthly + self.monthly_taxes() + self.monthly_insurance()))
             print('-' * 75)
         # re-reference totals to include additional payments (new function needed)
         # pv of payments
