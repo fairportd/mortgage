@@ -102,7 +102,7 @@ class Mortgage:
     
     def monthly_payment(self):
         """Returns the monthly payment for the loan"""
-        pmt = (self.amount() * self.rate()) / (self.MONTHS_IN_YEAR * (1.0-(1.0/self.monthly_growth()) ** self.loan_months()))
+        pmt = np.pmt(self.rate()/self.MONTHS_IN_YEAR, self.loan_months(), -self.amount())
         return pmt
 
     def annual_payment(self):
