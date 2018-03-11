@@ -42,6 +42,7 @@ class Mortgage:
         self._inflation = float(0.03)
         self._pv_payments = float(0)
         self._pv_combined_payments = float(0)
+        self._per = np.arange(term*12) + 1 # array of numbered months
         self._first_payment = '1/1/2018' # future update
         self._pay_freq = 'Monthly' # only option for now
         self._compound_freq = 'Monthly' # only option for now
@@ -103,7 +104,35 @@ class Mortgage:
     def monthly_payment(self):
         """Returns the monthly payment for the loan"""
         pmt = np.pmt(self.rate()/self.MONTHS_IN_YEAR, self.loan_months(), -self.amount())
-        return pmt
+        return np.round(pmt, 2)
+
+    def interest_pmt(self):
+        """Returns array with the interest payment for each month"""
+        ipmt = np.ipmt(self.rate()/self.MONTHS_IN_YEAR, self._per, self.loan_months(),-self.amount())
+        return np.round(ipmt, 2)
+
+    def principal_pmt(self):
+        """Returns array with the principal payment for each month"""
+        ppmt = np.ppmt(self.rate()/self.MONTHS_IN_YEAR, self._per, self.loan_months(),-self.amount())
+        return np.round(ppmt, 2)
+
+    def beg_balance(self):
+        """Returns array with the beginning balance for each month"""
+        beg_balance = []
+        balance = self.amount()
+        for i in range(self.loan_months()):
+            beg_balance.append(balance)
+            balance -= self.principal_pmt()[i]
+        arr_balance = np.array(beg_balance)
+        return np.round(arr_balance, 2)
+
+    def pv_factor(self):
+        """Returns array with PV factors for each month"""
+        list_inflation = []
+        for month in range(self.loan_months()):
+            list_inflation.append((1 + self.rate()/12) ** month)
+        arr_inflation = np.array(list_inflation)
+        return arr_inflation
 
     def annual_payment(self):
         """Returns the total payments during the year for the loan"""
@@ -111,7 +140,11 @@ class Mortgage:
 
     def total_payment(self):
         """Returns the total cost of the loan"""
-        return self.monthly_payment() * self.loan_months()
+        return np.sum(self.monthly_payment())
+
+    def total_interest(self):
+        """Returns the total interest paid over the course of the loan"""
+        return np.sum(self.interest_pmt())
 
     def piti(self):
         """Returns the monthly PITI"""
@@ -158,6 +191,21 @@ class Mortgage:
         for index, payment in enumerate(self.monthly_payment_schedule()):
             amort_dict[index + 1] = [payment[0], payment[1], payment[2], payment[3], payment[4], payment[5]]
         return amort_dict
+
+    def amortization_table2(self):
+        """Returns a dataframe with the amortization table in it"""
+        """Beg. Bal, Mo Pmt, Add Pmt, Int Pmt, P Pmt, End Bal, PV"""
+        index = self._per - 1
+        df = pd.DataFrame(self._per)
+        df.columns = ['Month']
+        df['Beg. Balance'] = self.beg_balance()
+        df['Monthly Payment'] = self.monthly_payment()
+        df['Additional Payment'] = self.additional_pmt()
+        df['Interest'] = self.interest_pmt()
+        df['Principal'] = self.principal_pmt()
+        df['End Balance'] = df['Beg. Balance'] - df['Principal']
+        df['PV of Combined'] = (df['Monthly Payment'] + df['Additional Payment']) / self.pv_factor()
+        return df   
 
     def amortization_table(self):
         """Returns a dataframe with the amortization table in it"""
@@ -251,11 +299,11 @@ class Mortgage:
 
     def main(self, csv=False):
         """Generates an amortization table and prints the summary"""
-        self.amortization_table() # print [0] for the table # need to run to get summary stats
-        if csv == True:
-            self.amort_table_to_csv() #optional, use if want to export
-        self.print_summary()
-
+        # print(self.amortization_table()) # print [0] for the table # need to run to get summary stats
+        # if csv == True:
+        #     self.amort_table_to_csv() #optional, use if want to export
+        # self.print_summary()
+        print(self.amortization_table2())
 
 def main():
     parser = argparse.ArgumentParser(description='Mortgage Tools')
