@@ -130,7 +130,7 @@ class Mortgage:
         """Returns array with PV factors for each month"""
         list_inflation = []
         for month in range(self.loan_months()):
-            list_inflation.append((1 + self.rate()/12) ** month)
+            list_inflation.append((1 + self._inflation/12) ** month)
         arr_inflation = np.array(list_inflation)
         return arr_inflation
 
@@ -140,7 +140,7 @@ class Mortgage:
 
     def total_payment(self):
         """Returns the total cost of the loan"""
-        return np.sum(self.monthly_payment())
+        return self.monthly_payment() * self.loan_months()
 
     def total_interest(self):
         """Returns the total interest paid over the course of the loan"""
@@ -150,51 +150,8 @@ class Mortgage:
         """Returns the monthly PITI"""
         return self.monthly_payment() + self.monthly_taxes() + self.monthly_insurance()
 
-    def monthly_payment_schedule(self):
-        """Yields amortization schedule for the given loan"""
-        monthly = float(self.dollar(self.monthly_payment()))
-        additional = float(self.dollar(self.additional_pmt()))
-        balance = float(self.dollar(self.amount()))
-        end_balance = float(self.dollar(balance))
-        rate = float(decimal.Decimal(str(self.rate())).quantize(decimal.Decimal('.000001')))
-        while True:
-            interest_unrounded = balance * rate * float(decimal.Decimal(1) / self.MONTHS_IN_YEAR)
-            interest = float(self.dollar(interest_unrounded, round=decimal.ROUND_HALF_UP))
-
-            if monthly >= balance + interest:  # check if payment exceeds remaining due
-                # last pmt
-                additional = 0.0
-                principal = float(self.dollar(end_balance))
-                end_balance -= float(self.dollar(principal + additional))
-                yield float(self.dollar(balance)), float(self.dollar((principal + interest))), additional, interest, principal, float(self.dollar(end_balance))
-                break
-            elif (monthly + additional) >= balance + interest: # check if pmt + add exceeds remaining due
-                principal = float(self.dollar(monthly - interest))
-                additional = (balance + interest) - monthly
-                end_balance -= float(self.dollar(principal + additional))
-                yield float(self.dollar(balance)), float(self.dollar((principal + interest))), additional, interest, principal, float(self.dollar(end_balance))
-                break
-
-            principal = float(self.dollar(monthly - interest))
-            end_balance -= (principal + additional)
-            yield float(self.dollar(balance)), monthly, additional, interest, principal, float(self.dollar(end_balance))
-            balance = end_balance
-
-    def print_monthly_payment_schedule(self):
-        """Prints out the monthly payment schedule"""
-        for index, payment in enumerate(self.monthly_payment_schedule()):
-            print(index + 1, payment[0], payment[1], payment[2], payment[3], payment[4], payment[5])
-
-    def amortization_dict(self):
-        """Returns a dictionary with the payment schedule"""
-        amort_dict = {}
-        for index, payment in enumerate(self.monthly_payment_schedule()):
-            amort_dict[index + 1] = [payment[0], payment[1], payment[2], payment[3], payment[4], payment[5]]
-        return amort_dict
-
     def amortization_table2(self):
         """Returns a dataframe with the amortization table in it"""
-        """Beg. Bal, Mo Pmt, Add Pmt, Int Pmt, P Pmt, End Bal, PV"""
         index = self._per - 1
         df = pd.DataFrame(self._per)
         df.columns = ['Month']
@@ -205,54 +162,18 @@ class Mortgage:
         df['Principal'] = self.principal_pmt()
         df['End Balance'] = df['Beg. Balance'] - df['Principal']
         df['PV of Combined'] = (df['Monthly Payment'] + df['Additional Payment']) / self.pv_factor()
+
+        # summary stats
+        self._total_combined_payments = sum(df['Monthly Payment'].values) + sum(df['Additional Payment'].values)
+        self._pv_payments = sum(df['PV of Combined'].values)
+
         return df   
-
-    def amortization_table(self):
-        """Returns a dataframe with the amortization table in it"""
-        names = ['Beg. Balance', 'Monthly Payment', 'Additional Payment',
-                 'Interest', 'Principal', 'End Balance']
-        df = pd.DataFrame.from_dict(self.amortization_dict(), orient='index')
-        df.columns = names
-        monthly_inflation = self._inflation / 12
-        if sum(df['Additional Payment'].values) != 0: #check if there are additional payments
-            df['Total Payment'] = df['Monthly Payment'] + df['Additional Payment']
-            self._total_combined_payments = sum(df['Total Payment'].values)
-            self._payment_months = df.shape[0]
-            # calc PV of original terms
-            arr_months = np.array(range(self.loan_years() * 12))
-            arr_m_payment = np.array(self.monthly_payment())
-            list_inflation = []
-            for month in arr_months:
-                list_inflation.append((1 + monthly_inflation) ** month)
-            arr_inflation = np.array(list_inflation)
-            arr_pv_payments = np.divide(arr_m_payment, arr_inflation)
-            self._pv_payments = sum(arr_pv_payments)
-
-            # add combined PV factor
-            arr_c_months = np.array(range(self._payment_months))
-            list_c_inflation = []
-            for month in arr_c_months:
-                list_c_inflation.append((1 + monthly_inflation) ** month)
-            arr_c_inflation = np.array(list_c_inflation)
-            df['PV of Combined Payment'] = (df['Monthly Payment'] + df['Additional Payment']) / arr_c_inflation
-            self._pv_combined_payments = sum(df['PV of Combined Payment'].values)
-            return df
-        else:
-            # add PV factor
-            arr_months = np.array(range(self.loan_months()))
-            list_inflation = []
-            for month in arr_months:
-                list_inflation.append((1 + monthly_inflation) ** month)
-            arr_inflation = np.array(list_inflation)
-            df['PV of Payment'] = df['Monthly Payment'] / arr_inflation
-            self._pv_payments = sum(df['PV of Payment'].values)
-            return df
 
     def amort_table_to_csv(self):
         """Outputs the amortization table to a .csv file"""
         now = dt.datetime.today()
         date = str(now.year) + str(now.month) + str(now.day) + '_' + str(now.hour) + str(now.minute)
-        self.amortization_table().to_csv('/home/david/git_repos/mortgage/output/' + date + '.csv')
+        self.amortization_table2().to_csv('/home/david/git_repos/mortgage/output/' + date + '.csv')
 
     def print_summary(self):
         """Prints out a summary of the given mortgage"""
@@ -273,45 +194,24 @@ class Mortgage:
         print('')
         print('{0:>30s}: ${1:>11,.0f}'.format('Monthly PITI', self.piti()))
         print('-' * 75)
-        if self._total_combined_payments != 0:
-            new_monthly = self._total_combined_payments / self._payment_months
-            new_annual = self._total_combined_payments / self._payment_months * 12
-            change_months = self._payment_months - self.loan_months()
-            change_monthly = new_monthly - self.monthly_payment()
-            change_annual = new_annual - self.annual_payment()
-            change_total = self._total_combined_payments - self.total_payment()
-            change_pv = self._pv_combined_payments - self._pv_payments
-            print('Effect of paying an additional ${0:,.0f} each month:'.format(self.additional_pmt()))
-            print("")
-            print('{0:>30s}: {1:>12.1f}     {2:>10.1f} years'.format('Term (years)', self._payment_months/12.0, change_months/12.0))
-            print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('Monthly Mortgage Payment', new_monthly, change_monthly))
-            print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('Annual Mortgage Payment', new_annual, change_annual))
-            print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('Total Mortgage Payment', self._total_combined_payments, change_total))
-            print('{0:>30s}: ${1:>11,.0f}    ${2:>10,.0f}'.format('PV of Combined Payments', self._pv_combined_payments, change_pv))
-            print('')
-            print('{0:>30s}: ${1:>11,.0f}'.format('Annual Taxes', self.taxes()))
-            print('{0:>30s}: ${1:>11,.0f}'.format('Annual Insurance', self.insurance()))
-            print('')
-            print('{0:>30s}: ${1:>11,.0f}'.format('Monthly PITI', new_monthly + self.monthly_taxes() + self.monthly_insurance()))
-            print('-' * 75)
         # re-reference totals to include additional payments (new function needed)
         # pv of payments
 
     def main(self, csv=False):
         """Generates an amortization table and prints the summary"""
         # print(self.amortization_table()) # print [0] for the table # need to run to get summary stats
-        # if csv == True:
-        #     self.amort_table_to_csv() #optional, use if want to export
-        # self.print_summary()
-        print(self.amortization_table2())
-
+        self.amortization_table2()
+        if csv == True:
+            self.amort_table_to_csv() #optional, use if want to export
+        self.print_summary()
+        
 def main():
     parser = argparse.ArgumentParser(description='Mortgage Tools')
     parser.add_argument('-r', '--interest', default=5, dest='interest')
     parser.add_argument('-y', '--loan-years', default=30, dest='years')
-    parser.add_argument('-p', '--price', default=250000, dest='price')
-    parser.add_argument('-a', '--amount', default=200000, dest='amount')
-    parser.add_argument('-t', '--taxes', default=7000, dest ='taxes')
+    parser.add_argument('-p', '--price', default=205000, dest='price')
+    parser.add_argument('-a', '--amount', default=161000, dest='amount')
+    parser.add_argument('-t', '--taxes', default=7300, dest ='taxes')
     parser.add_argument('-i', '--insurance', default=0.0035, dest='insurance')
     parser.add_argument('-e', '--extra payment', default=None, dest='extra')
     args = parser.parse_args() 
