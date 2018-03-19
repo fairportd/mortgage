@@ -126,6 +126,11 @@ class Mortgage:
         arr_balance = np.array(beg_balance)
         return np.round(arr_balance, 2)
 
+    def end_balance(self):
+        """Returns array with the ending balance for each month"""
+        end_balance = self.beg_balance() - self.principal_pmt()
+        return end_balance
+
     def pv_factor(self):
         """Returns array with PV factors for each month"""
         list_inflation = []
@@ -160,7 +165,8 @@ class Mortgage:
         df['Additional Payment'] = self.additional_pmt()
         df['Interest'] = self.interest_pmt()
         df['Principal'] = self.principal_pmt()
-        df['End Balance'] = df['Beg. Balance'] - df['Principal']
+        df['Total Payment'] = 0
+        df['End Balance'] = self.end_balance()
         df['PV of Combined'] = (df['Monthly Payment'] + df['Additional Payment']) / self.pv_factor()
 
         # summary stats
@@ -199,7 +205,7 @@ class Mortgage:
 
     def main(self, csv=False):
         """Generates an amortization table and prints the summary"""
-        # print(self.amortization_table()) # print [0] for the table # need to run to get summary stats
+        print(self.amortization_table2()) # print [0] for the table # need to run to get summary stats
         self.amortization_table2()
         if csv == True:
             self.amort_table_to_csv() #optional, use if want to export
@@ -207,10 +213,10 @@ class Mortgage:
         
 def main():
     parser = argparse.ArgumentParser(description='Mortgage Tools')
-    parser.add_argument('-r', '--interest', default=5, dest='interest')
+    parser.add_argument('-r', '--interest', default=4.25, dest='interest')
     parser.add_argument('-y', '--loan-years', default=30, dest='years')
     parser.add_argument('-p', '--price', default=205000, dest='price')
-    parser.add_argument('-a', '--amount', default=161000, dest='amount')
+    parser.add_argument('-a', '--amount', default=164000, dest='amount')
     parser.add_argument('-t', '--taxes', default=7300, dest ='taxes')
     parser.add_argument('-i', '--insurance', default=0.0035, dest='insurance')
     parser.add_argument('-e', '--extra payment', default=None, dest='extra')
