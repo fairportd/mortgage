@@ -162,15 +162,13 @@ class Mortgage:
         df.columns = ['Month']
         df['Beg. Balance'] = self.beg_balance()
         df['Monthly Payment'] = self.monthly_payment()
-        df['Additional Payment'] = self.additional_pmt()
         df['Interest'] = self.interest_pmt()
         df['Principal'] = self.principal_pmt()
-        df['Total Payment'] = 0
         df['End Balance'] = self.end_balance()
-        df['PV of Combined'] = (df['Monthly Payment'] + df['Additional Payment']) / self.pv_factor()
+        df['PV of Combined'] = df['Monthly Payment'] / self.pv_factor()
 
         # summary stats
-        self._total_combined_payments = sum(df['Monthly Payment'].values) + sum(df['Additional Payment'].values)
+        self._total_combined_payments = sum(df['Monthly Payment'].values)
         self._pv_payments = sum(df['PV of Combined'].values)
 
         return df   
