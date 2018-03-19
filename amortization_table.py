@@ -106,6 +106,11 @@ class Mortgage:
         pmt = np.pmt(self.rate()/self.MONTHS_IN_YEAR, self.loan_months(), -self.amount())
         return np.round(pmt, 2)
 
+    def total_monthly_payment(self):
+        """Returns total payment including additional principal"""
+        total = self.monthly_payment() + self.additional_pmt()
+        return total
+
     def interest_pmt(self):
         """Returns array with the interest payment for each month"""
         ipmt = np.ipmt(self.rate()/self.MONTHS_IN_YEAR, self._per, self.loan_months(),-self.amount())
@@ -155,6 +160,43 @@ class Mortgage:
         """Returns the monthly PITI"""
         return self.monthly_payment() + self.monthly_taxes() + self.monthly_insurance()
 
+    def amortize_additional_payments(self):
+        """Returns arrays related to additional payments"""
+        months = []
+        start_balance_list = []
+        interest_list = []
+        principal_list = []
+        total_list = []
+        end_balance_list = []
+        # months, start balance, int, prin, add, total, end
+        month = 1
+        start_balance = self.amount()
+        while start_balance > 0:
+            interest = np.round(start_balance * self.rate() / self.MONTHS_IN_YEAR,2)
+            principal = np.round(self.monthly_payment() - interest,2)
+            total = np.round(self.monthly_payment() + self.additional_pmt(),2)
+            end_balance = np.round(start_balance - principal - self.additional_pmt(),2)
+            # add to lists
+            months.append(month)
+            start_balance_list.append(start_balance)
+            interest_list.append(interest)
+            principal_list.append(principal)
+            total_list.append(total)
+            end_balance_list.append(end_balance)
+            #print(month, start_balance, interest, principal, self.additional_pmt(), total, end_balance)
+            # new start balance
+            start_balance = end_balance
+            month += 1
+        
+        arr_months = np.array(months)
+        arr_start = np.array(start_balance_list)
+        arr_interest = np.array(interest_list)
+        arr_principal = np.array(principal_list)
+        arr_total = np.array(total_list)
+        arr_end = np.array(end_balance_list)
+
+        return arr_months, arr_start, arr_interest, arr_principal, arr_total, arr_end
+
     def amortization_table2(self):
         """Returns a dataframe with the amortization table in it"""
         index = self._per - 1
@@ -172,6 +214,24 @@ class Mortgage:
         self._pv_payments = sum(df['PV of Combined'].values)
 
         return df   
+
+    def amortization_table_additional(self):
+        """Returns a dataframe with an amortization table which includes
+        the effect of additional payments"""
+        months, start, interest, principal, total, end = self.amortize_additional_payments()
+        df = pd.DataFrame(months)
+        df.columns = ['Month']
+        df['Beg. Balance'] = start # beg balance function
+        #df['Monthly Payment'] = self.monthly_payment()
+        df['Interest'] = interest # int function
+        df['Principal'] = principal # prn function
+        df['Additional Payment'] = self.additional_pmt()
+        df['Total Payment'] = total
+        df['End Balance'] = end
+        # pv function  account for shorter long term month total
+
+        return df
+
 
     def amort_table_to_csv(self):
         """Outputs the amortization table to a .csv file"""
@@ -203,7 +263,9 @@ class Mortgage:
 
     def main(self, csv=False):
         """Generates an amortization table and prints the summary"""
-        print(self.amortization_table2()) # print [0] for the table # need to run to get summary stats
+        #print(self.amortization_table2()) # print [0] for the table # need to run to get summary stats
+        print(self.amortization_table_additional())
+        #self.amortize_additional_payments()
         self.amortization_table2()
         if csv == True:
             self.amort_table_to_csv() #optional, use if want to export
@@ -217,7 +279,7 @@ def main():
     parser.add_argument('-a', '--amount', default=164000, dest='amount')
     parser.add_argument('-t', '--taxes', default=7300, dest ='taxes')
     parser.add_argument('-i', '--insurance', default=0.0035, dest='insurance')
-    parser.add_argument('-e', '--extra payment', default=None, dest='extra')
+    parser.add_argument('-e', '--extra payment', default=100, dest='extra')
     args = parser.parse_args() 
 
     if args.extra:
